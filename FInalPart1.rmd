@@ -1,0 +1,120 @@
+---
+output:
+  word_document: default
+  html_document: default
+---
+#Final Project - Part 1
+
+##James Horne
+
+```{r library}
+options(tidyverse.quiet = TRUE)
+library(tidyverse)
+library(mice)
+library(VIM)
+library(caret)
+Rain <- read.csv("rain.csv")
+```
+
+```{r Summary}
+str(Rain)
+summary(Rain)
+```
+
+I commented these plots to cut down on the total number of pages. The plots are run again on the test data later.
+```{r plots}
+#ggplot(Rain, aes(x=RainTomorrow,y=MinTemp)) + geom_boxplot() + theme_bw()
+#ggplot(Rain, aes(x=RainTomorrow,y=MaxTemp)) + geom_boxplot() + theme_bw()
+#ggplot(Rain, aes(x=RainTomorrow,y=Rainfall)) + geom_boxplot() + theme_bw()
+#ggplot(Rain, aes(x=WindGustDir, fill = RainTomorrow)) + geom_bar() + theme_bw()
+#ggplot(Rain, aes(x=RainTomorrow,y=WindGustSpeed)) + geom_boxplot() + theme_bw()
+#ggplot(Rain, aes(x=WindDir9am, fill = RainTomorrow)) + geom_bar() + theme_bw()
+#ggplot(Rain, aes(x=WindDir3pm, fill = RainTomorrow)) + geom_bar() + theme_bw()
+#ggplot(Rain, aes(x=RainTomorrow,y=WindSpeed9am)) + geom_boxplot() + theme_bw()
+#ggplot(Rain, aes(x=RainTomorrow,y=WindSpeed3pm)) + geom_boxplot() + theme_bw()
+#ggplot(Rain, aes(x=RainTomorrow,y=Humidity9am)) + geom_boxplot() + theme_bw()
+#ggplot(Rain, aes(x=RainTomorrow,y=Humidity3pm)) + geom_boxplot() + theme_bw()
+#ggplot(Rain, aes(x=RainTomorrow,y=Pressure9am)) + geom_boxplot() + theme_bw()
+#ggplot(Rain, aes(x=RainTomorrow,y=Pressure3pm)) + geom_boxplot() + theme_bw()
+#ggplot(Rain, aes(x=Cloud9am, fill = RainTomorrow)) + geom_bar() + theme_bw()
+#ggplot(Rain, aes(x=Cloud3pm, fill = RainTomorrow)) + geom_bar() + theme_bw()
+#ggplot(Rain, aes(x=RainTomorrow,y=Temp9am)) + geom_boxplot() + theme_bw()
+#ggplot(Rain, aes(x=RainTomorrow,y=Temp3pm)) + geom_boxplot() + theme_bw()
+#ggplot(Rain, aes(x=RainToday, fill = RainTomorrow)) + geom_bar() + theme_bw()
+```
+
+
+```{r missingness}
+vim_plot = aggr(Rain, numbers = TRUE, prop = c(TRUE, FALSE),cex.axis=.7)
+```
+
+```{r column deletion}
+rain = Rain %>% select(-Cloud9am)
+rain = rain %>% select(-Cloud3pm)
+```
+
+```{r}
+vim_plot = aggr(rain, numbers = TRUE, prop = c(TRUE, FALSE),cex.axis=.7)
+```
+
+```{r row deletion}
+rain = rain %>% drop_na(WindGustDir)
+rain = rain %>% drop_na(WindDir9am)
+rain = rain %>% drop_na(WindDir3pm)
+rain = rain %>% drop_na(RainToday)
+rain = rain %>% drop_na(Temp3pm)
+```
+
+```{r}
+vim_plot = aggr(rain, numbers = TRUE, prop = c(TRUE, FALSE),cex.axis=.7)
+```
+
+```{r}
+rain2 = rain %>% select(-Date)
+imp_data = mice(rain2, m=1, method = 'pmm', printFlag=FALSE)
+```
+
+```{r}
+rain_complete = complete(imp_data)
+summary(rain_complete)
+vim_plot = aggr(rain_complete, numbers = TRUE, prop = c(TRUE, FALSE),cex.axis=.7)
+```
+
+```{r}
+densityplot(imp_data, ~MinTemp)
+densityplot(imp_data, ~MaxTemp)
+densityplot(imp_data, ~Humidity3pm)
+densityplot(imp_data, ~Humidity9am)
+densityplot(imp_data, ~Pressure9am)
+densityplot(imp_data, ~Pressure3pm)
+densityplot(imp_data, ~Temp9am)
+```
+
+
+```{r train test split}
+set.seed(1234)
+train.rows = createDataPartition(y = rain_complete$RainTomorrow, p=0.7, list = FALSE)
+train = rain_complete[train.rows,]
+test = rain_complete[-train.rows,]
+```
+
+```{r plots train set}
+ggplot(train, aes(x=RainTomorrow,y=MinTemp)) + geom_boxplot() + theme_bw()
+ggplot(train, aes(x=RainTomorrow,y=MaxTemp)) + geom_boxplot() + theme_bw()
+ggplot(train, aes(x=RainTomorrow,y=Rainfall)) + geom_boxplot() + theme_bw()
+ggplot(train, aes(x=WindGustDir, fill = RainTomorrow)) + geom_bar() + theme_bw()
+ggplot(train, aes(x=RainTomorrow,y=WindGustSpeed)) + geom_boxplot() + theme_bw()
+ggplot(train, aes(x=WindDir9am, fill = RainTomorrow)) + geom_bar() + theme_bw()
+ggplot(train, aes(x=WindDir3pm, fill = RainTomorrow)) + geom_bar() + theme_bw()
+ggplot(train, aes(x=RainTomorrow,y=WindSpeed9am)) + geom_boxplot() + theme_bw()
+ggplot(train, aes(x=RainTomorrow,y=WindSpeed3pm)) + geom_boxplot() + theme_bw()
+ggplot(train, aes(x=RainTomorrow,y=Humidity9am)) + geom_boxplot() + theme_bw()
+ggplot(train, aes(x=RainTomorrow,y=Humidity3pm)) + geom_boxplot() + theme_bw()
+ggsave("humidity.png")
+ggplot(train, aes(x=RainTomorrow,y=Pressure9am)) + geom_boxplot() + theme_bw()
+ggplot(train, aes(x=RainTomorrow,y=Pressure3pm)) + geom_boxplot() + theme_bw()
+ggplot(train, aes(x=RainTomorrow,y=Temp9am)) + geom_boxplot() + theme_bw()
+ggplot(train, aes(x=RainTomorrow,y=Temp3pm)) + geom_boxplot() + theme_bw()
+ggplot(train, aes(x=RainToday, fill = RainTomorrow)) + geom_bar() + theme_bw()
+ggsave("raintoday.png")
+```
